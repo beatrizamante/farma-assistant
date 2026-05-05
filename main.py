@@ -1,12 +1,12 @@
-from _lib.container import get_container
-from config.logger import setup_logging
 from fastapi import FastAPI
 
 from src.interface.http.server import make_server
 from src.interface.http.routes.prompt_route import router as prompt_route
+from src.config.logger import setup_logging
+from src._lib.container import get_container
 
 logger = setup_logging()
-container = get_container()
+CONTAINER = get_container()
 
 app = FastAPI()
 

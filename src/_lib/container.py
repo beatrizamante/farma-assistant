@@ -1,6 +1,5 @@
-from dependency_injector import containerss
 
-class Container(containers.DeclarativeContainer):
+class Container():
     """
     Dependency injection container for application services and configuration.
 
