@@ -14,17 +14,14 @@ def setup_logging() -> logging.Logger:
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # stdout: apenas INFO+
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
 
-    # app.log: apenas INFO+ (eventos normais, requisições, respostas do modelo)
     app_handler = logging.FileHandler(logs_dir / "app.log", encoding="utf-8")
     app_handler.setLevel(logging.INFO)
     app_handler.setFormatter(formatter)
 
-    # debug.log: tudo (DEBUG+), útil para rastrear o agente passo a passo
     debug_handler = logging.FileHandler(logs_dir / "debug.log", encoding="utf-8")
     debug_handler.setLevel(logging.DEBUG)
     debug_handler.setFormatter(formatter)
@@ -35,7 +32,6 @@ def setup_logging() -> logging.Logger:
         force=True,
     )
 
-    # Captura logs do uvicorn nos mesmos handlers
     for uvicorn_logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
         uv = logging.getLogger(uvicorn_logger_name)
         uv.handlers = [console_handler, app_handler, debug_handler]
