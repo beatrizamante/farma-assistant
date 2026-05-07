@@ -2,11 +2,10 @@ from fastapi import FastAPI
 
 from src.interface.http.server import make_server
 from src.interface.http.routes.prompt_route import router as prompt_route
-from src.config.logger import setup_logging
 from src._lib.container import get_container
 
-logger = setup_logging()
 CONTAINER = get_container()
+logger = CONTAINER.logger()
 
 app = FastAPI()
 

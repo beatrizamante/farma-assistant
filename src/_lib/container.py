@@ -1,11 +1,13 @@
 
-class Container():
-    """
-    Dependency injection container for application services and configuration.
+from dependency_injector import containers, providers
 
-    Attributes:
-    """
+from src.config.logger import setup_logging
 
+
+class Container(containers.DeclarativeContainer):
+    """Dependency injection container for application services and configuration."""
+
+    logger = providers.Singleton(setup_logging)
 
 
 class ContainerSingleton:
@@ -17,7 +19,7 @@ class ContainerSingleton:
         """Get the singleton container instance"""
         if cls._instance is None:
             cls._instance = Container()
-        return cls._instance  # type: ignore
+        return cls._instance
 
 
 def get_container() -> Container:
