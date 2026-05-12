@@ -1,0 +1,14 @@
+.venv*
+venv*
+.env
+__pycache__/
+*.py[cod]
+.ruff_cache
+
+src/dataset/
+src/infrastructure/r_model/core/deepseek-math-7b-rl/*
+logs/
+
+*.rar
+*.zip
+*.tar.gz
