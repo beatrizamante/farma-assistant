@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from domain.value_objects.RLHF_record import RLHFRecord
+from domain.value_objects.RLHF_Record import RLHFRecord
 
 _OUTPUT_PATH = Path("src/dataset/sft/data.jsonl")
 

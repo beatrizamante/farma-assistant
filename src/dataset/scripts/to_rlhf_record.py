@@ -1,5 +1,5 @@
-from domain.value_objects.RLHF_record import RLHFRecord
-from domain.value_objects.Farma_raw_log import FarmaRawLog
+from domain.value_objects.RLHF_Record import RLHFRecord
+from domain.value_objects.Farma_Raw_Log import FarmaRawLog
 
 
 def to_rlhf_record(raw: FarmaRawLog) -> RLHFRecord:
