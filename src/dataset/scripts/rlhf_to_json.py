@@ -5,7 +5,6 @@ from domain.value_objects.RLHF_record import RLHFRecord
 
 _OUTPUT_PATH = Path("src/dataset/sft/data.jsonl")
 
-
 def rlhf_to_json(rlhf_records: list[RLHFRecord]) -> None:
     """Serialize a list of RLHFRecord value objects to a .jsonl file.
 
@@ -15,4 +14,4 @@ def rlhf_to_json(rlhf_records: list[RLHFRecord]) -> None:
     _OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _OUTPUT_PATH.open("w", encoding="utf-8") as f:
         for record in rlhf_records:
-            f.write(json.dumps(record.prompt_structure, ensure_ascii=False) + "\n")
+            f.write(json.dumps(record.prompt_structure.model_dump(), ensure_ascii=False) + "\n")

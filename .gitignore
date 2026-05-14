@@ -5,7 +5,7 @@ __pycache__/
 *.py[cod]
 .ruff_cache
 
-src/dataset/data
+src/dataset/deepseek-math
 src/infrastructure/r_model/core/deepseek-math-7b-rl/*
 logs/
 

@@ -1,5 +1,7 @@
 from pydantic import BaseModel, computed_field
 
+from domain.value_objects.SFTRecord import SFTRecord
+
 class RLHFRecord(BaseModel):
     """Value object representing a single SFT (Supervised Fine-Tuning) record.
 
@@ -14,7 +16,7 @@ class RLHFRecord(BaseModel):
 
     @computed_field
     @property
-    def prompt_structure(self) -> dict[str, str]:
+    def prompt_structure(self) -> SFTRecord:
         """Build the prompt/completion pair in DeepSeek SFT format.
 
         The ``prompt`` contains everything up to and including ``Assistant:``
@@ -25,7 +27,7 @@ class RLHFRecord(BaseModel):
             dict with keys ``"prompt"`` and ``"completion"``.
         """
         chain_of_thought = "\n".join(self.steps.values())
-        return {
-            "prompt": f"User: {self.question}\nPlease reason step by step, and put your final answer within \\boxed{{}}.\n\nA:",
-            "completion": f"{chain_of_thought}\n\\boxed{{{self.answer}}}<｜end▁of▁sentence｜>",
-        }
+        return SFTRecord(
+            prompt=f"User: {self.question}\nPlease reason step by step, and put your final answer within \\boxed{{}}.\n\nA:",
+            completion=f"{chain_of_thought}\n\\boxed{{{self.answer}}}<｜end▁of▁sentence｜>",
+        )
