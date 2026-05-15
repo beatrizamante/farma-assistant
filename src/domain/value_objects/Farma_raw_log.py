@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 
-from domain.entities.Farma_Exercise import FarmaExercise
-from domain.entities.Farma_Steps import FarmaSteps
+from domain.entities.FARMA.Farma_Exercise import FarmaExercise
+from domain.entities.FARMA.Farma_Steps import FarmaSteps
+
 
 
 class FarmaRawLog(BaseModel):
