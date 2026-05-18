@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AnonymizedAnswer(BaseModel):
@@ -16,3 +16,10 @@ class AnonymizedAnswer(BaseModel):
     attempt_number: int
     created_at: str
     updated_at: str
+
+    @field_validator("response")
+    @classmethod
+    def must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("incomplete attempt: response is empty")
+        return v

@@ -1,5 +1,6 @@
-from domain.value_objects.Farma_Raw_Log import FarmaRawLog
-from domain.value_objects.GRPO_Record import GRPORecord
+from dataset.scripts.normalize_math_notation import normalize_math_notation
+from domain.entities.Farma_Raw_Log import FarmaRawLog
+from domain.value_objects.fine_tuning.GRPO_Record import GRPORecord
 
 
 def to_grpo_record(raw: FarmaRawLog) -> GRPORecord:
@@ -11,10 +12,10 @@ def to_grpo_record(raw: FarmaRawLog) -> GRPORecord:
     """
     ordered_steps = sorted(raw.steps, key=lambda s: s.position)
     solution = "\n".join(
-        f"Step {step.position}: {step.description}" for step in ordered_steps
+        f"Step {step.position}: {normalize_math_notation(step.description)}" for step in ordered_steps
     )
     return GRPORecord(
-        problem=raw.exercise.description,
+        problem=normalize_math_notation(raw.exercise.description),
         solution=solution,
-        answer=ordered_steps[-1].response,
+        answer=normalize_math_notation(ordered_steps[-1].response),
     )

@@ -1,6 +1,7 @@
 from pydantic import BaseModel, computed_field
 
-from domain.value_objects.SFT_Record import SFTRecord
+from domain.value_objects.fine_tuning.SFT_Record import SFTRecord
+
 
 class RLHFRecord(BaseModel):
     """Value object representing a single SFT (Supervised Fine-Tuning) record.

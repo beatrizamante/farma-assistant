@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from domain.value_objects.GRPO_Record import GRPORecord
+from domain.value_objects.fine_tuning.GRPO_Record import GRPORecord
 
 _OUTPUT_PATH = Path(__file__).resolve().parents[3] / "dataset" / "grpo" / "data.jsonl"
 
