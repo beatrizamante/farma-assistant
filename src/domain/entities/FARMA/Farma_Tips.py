@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class FarmaTip(BaseModel):
+    """Represents a farma tip entity."""
     id: int
     description: str
     number_attempts: int
