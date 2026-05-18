@@ -2,7 +2,7 @@
 from dependency_injector import containers, providers
 
 from src.config.logger import setup_logging
-from src.domain.entities.model_settings import ModelSettings
+from src.domain.entities.Model_Settings import ModelSettings
 from src.infrastructure.r_model.core.build_model import BuildModel
 from src.infrastructure.r_model.core.build_tokenizer import BuildTokenizer
 
