@@ -1,6 +1,6 @@
 from transformers import AutoModelForCausalLM, PreTrainedModel
 
-from src.domain.entities.model_settings import ModelSettings
+from src.domain.entities.Model_Settings import ModelSettings
 
 class BuildModel:
     """Builds and manages a pre-trained language model for causal language modeling."""
@@ -13,6 +13,7 @@ class BuildModel:
         """Load the pre-trained model from the configured model directory."""
         self._model = AutoModelForCausalLM.from_pretrained(
             str(self._settings.model_dir),
+            quantization_config=self._settings.quantization_config,
             torch_dtype=self._settings.dtype,
             device_map=self._settings.device_map,
         )

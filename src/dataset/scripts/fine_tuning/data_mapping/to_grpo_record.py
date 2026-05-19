@@ -1,5 +1,5 @@
 from dataset.scripts.normalize_math_notation import normalize_math_notation
-from domain.entities.Farma_Raw_Log import FarmaRawLog
+from domain.entities.FARMA.Farma_Raw_Log import FarmaRawLog
 from domain.value_objects.fine_tuning.GRPO_Record import GRPORecord
 
 

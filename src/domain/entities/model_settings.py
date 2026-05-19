@@ -1,9 +1,10 @@
 from pathlib import Path
+from typing import Literal
 
 import torch
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from transformers import PreTrainedConfig
+from transformers import PreTrainedConfig, BitsAndBytesConfig
 
 _DTYPE_MAP: dict[str, torch.dtype] = {
     "bfloat16": torch.bfloat16,
@@ -17,6 +18,7 @@ class ModelSettings(BaseSettings):
     model_dir: Path
     torch_dtype: str = "bfloat16"
     device_map: str = "auto"
+    quantization_type: Literal["none", "4bit", "8bit"] = "none"
 
     @field_validator("model_dir")
     @classmethod
@@ -30,6 +32,26 @@ class ModelSettings(BaseSettings):
     def dtype(self) -> torch.dtype:
         """Get the torch dtype based on torch_dtype setting."""
         return _DTYPE_MAP[self.torch_dtype]
+
+    @property
+    def quantization_config(self) -> BitsAndBytesConfig | None:
+        """Build the BitsAndBytesConfig for the chosen quantization type.
+
+        ``bnb_4bit_compute_dtype`` is derived from ``torch_dtype`` so both
+        settings always stay in sync — passing mismatched dtypes to
+        ``from_pretrained`` and ``BitsAndBytesConfig`` is a common source of
+        silent precision bugs.
+        """
+        if self.quantization_type == "4bit":
+            return BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=self.dtype,
+                bnb_4bit_use_double_quant=True,
+            )
+        if self.quantization_type == "8bit":
+            return BitsAndBytesConfig(load_in_8bit=True)
+        return None
 
     @property
     def pretrained_config(self) -> PreTrainedConfig:
