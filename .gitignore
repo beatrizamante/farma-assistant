@@ -7,6 +7,7 @@ __pycache__/
 
 src/dataset/raw
 src/infrastructure/r_model/core/deepseek-math-7b-rl/*
+src/infrastructure/r_model/core/deepseek-math-farma/*
 logs/
 
 *.rar
