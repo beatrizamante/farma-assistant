@@ -2,6 +2,7 @@ from fractions import Fraction
 
 from pydantic import BaseModel, computed_field
 
+
 class GRPORecord(BaseModel):
     """Value object representing a single GRPO (Group Relative Policy Optimization) record.
 

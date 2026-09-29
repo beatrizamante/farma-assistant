@@ -4,7 +4,7 @@ from typing import Literal
 import torch
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
-from transformers import PreTrainedConfig, BitsAndBytesConfig
+from transformers import BitsAndBytesConfig, PreTrainedConfig
 
 _DTYPE_MAP: dict[str, torch.dtype] = {
     "bfloat16": torch.bfloat16,

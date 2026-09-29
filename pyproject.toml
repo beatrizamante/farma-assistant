@@ -9,6 +9,7 @@ dependencies = [
     "aiohttp>=3.13.5",
     "aioredis>=2.0.1",
     "beautifulsoup4>=4.12.0",
+    "datasets>=4.0.0",
     "dependency-injector>=4.49.0",
     "fastapi>=0.136.1",
     "peft>=0.19.1",
@@ -21,7 +22,7 @@ dependencies = [
     "torch>=2.11.0",
     "torchvision>=0.26.0",
     "transformers>=5.8.0",
-    "trl>=1.4.0",
+    "trl>=0.23.0",
     "uvicorn>=0.46.0",
 ]
 

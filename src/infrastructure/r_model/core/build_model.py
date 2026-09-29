@@ -1,6 +1,7 @@
 from transformers import AutoModelForCausalLM, PreTrainedModel
 
-from src.domain.entities.Model_Settings import ModelSettings
+from src.domain.entities.model_settings import ModelSettings
+
 
 class BuildModel:
     """Builds and manages a pre-trained language model for causal language modeling."""

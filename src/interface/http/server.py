@@ -1,5 +1,7 @@
 import logging
+
 import uvicorn
+
 
 def make_server():
     """

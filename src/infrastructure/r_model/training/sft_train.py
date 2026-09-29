@@ -1,4 +1,4 @@
-"""QLoRA + GRPO phase for mathematical reasoning reinforcement."""
+"""QLoRA SFT phase for the FARMA domain."""
 
 from __future__ import annotations
 
@@ -21,20 +21,17 @@ from transformers import (
     PreTrainedModel,
     PreTrainedTokenizerBase,
 )
-from trl.trainer.grpo_config import GRPOConfig
-from trl.trainer.grpo_trainer import GRPOTrainer
-
-ModelType = PreTrainedModel | PeftModel
+from trl.trainer.sft_config import SFTConfig
+from trl.trainer.sft_trainer import SFTTrainer
 
 from src.domain.entities.model_settings import ModelSettings
 from src.infrastructure.r_model.training.config import load_train_config
-from src.infrastructure.r_model.training.reward import grpo_reward
+
+ModelType = PreTrainedModel | PeftModel
 
 
 def _resolve_dataset(path: str | Path) -> Dataset:
     dataset_path = Path(path)
-    if not dataset_path.exists():
-        raise FileNotFoundError(f"Dataset not found: {dataset_path}")
     if dataset_path.suffix == ".jsonl":
         return load_dataset("json", data_files=str(dataset_path), split="train")
     return load_dataset(str(dataset_path), split="train")
@@ -42,7 +39,6 @@ def _resolve_dataset(path: str | Path) -> Dataset:
 
 def build_model_and_tokenizer(
     base_model_dir: Path,
-    adapter_dir: Path | None = None,
     torch_dtype: str = "bfloat16",
 ) -> tuple[ModelType, PreTrainedTokenizerBase]:
     settings = ModelSettings(
@@ -50,19 +46,16 @@ def build_model_and_tokenizer(
         torch_dtype=torch_dtype,
         quantization_type="4bit",
     )
-    base_model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+    tokenizer = AutoTokenizer.from_pretrained(str(base_model_dir))
+    tokenizer.pad_token = tokenizer.eos_token
+
+    model: ModelType = AutoModelForCausalLM.from_pretrained(
         str(base_model_dir),
         quantization_config=settings.quantization_config,
         torch_dtype=settings.dtype,
         device_map="auto",
     )
-    tokenizer = AutoTokenizer.from_pretrained(str(adapter_dir or base_model_dir))
-    tokenizer.pad_token = tokenizer.eos_token
-
-    if adapter_dir is not None and adapter_dir.exists():
-        return cast(ModelType, PeftModel.from_pretrained(base_model, str(adapter_dir))), tokenizer
-
-    return cast(ModelType, base_model), tokenizer
+    return model, tokenizer
 
 
 def _as_int(mapping: dict[str, object], key: str, default: int) -> int:
@@ -83,14 +76,16 @@ def _as_float(mapping: dict[str, object], key: str, default: float) -> float:
     return default
 
 
-def train_grpo(config_path: Path) -> None:
-    config = load_train_config(config_path)
-    checkpoint = config.model.adapter_dir or Path("src/infrastructure/r_model/training/checkpoints/farma-sft/adapter")
-    dataset = _resolve_dataset(Path("src/dataset/grpo/data.jsonl"))
-    if "problem" not in dataset.column_names or "answer" not in dataset.column_names:
-        raise ValueError("GRPO dataset must contain 'problem' and 'answer' columns.")
+def _format_sft_example(example: dict[str, object]) -> str:
+    prompt = example.get("prompt", "")
+    completion = example.get("completion", "")
+    return f"{prompt}{completion}"
 
-    model, tokenizer = build_model_and_tokenizer(config.model.base_model_dir, checkpoint)
+
+def train_sft(config_path: Path) -> None:
+    config = load_train_config(config_path)
+    model, tokenizer = build_model_and_tokenizer(config.model.base_model_dir)
+
     peft_config = LoraConfig(
         r=config.lora.r,
         lora_alpha=config.lora.lora_alpha,
@@ -99,22 +94,17 @@ def train_grpo(config_path: Path) -> None:
         bias="none",
         task_type="CAUSAL_LM",
     )
-    if not isinstance(model, PeftModel):
-        model = cast(ModelType, get_peft_model(cast(PreTrainedModel, model), peft_config))
+    base_model = cast(PreTrainedModel, model)
+    model = cast(ModelType, get_peft_model(base_model, peft_config))
 
-    mapped_dataset = dataset.map(
-        lambda row: {
-            "prompt": f"User: {row['problem']}\nPlease reason step by step and put the final answer inside \\boxed{{}}.\n\nA:",
-            "answer": row["answer"],
-            "solution": row.get("solution", ""),
-        },
-        remove_columns=list(dataset.column_names),
-    )
+    dataset = _resolve_dataset("src/dataset/sft/data.jsonl")
+    if "prompt" not in dataset.column_names or "completion" not in dataset.column_names:
+        raise ValueError("SFT dataset must contain 'prompt' and 'completion' columns.")
 
-    output_dir = config.model.output_dir or Path("src/infrastructure/r_model/training/checkpoints/farma-grpo")
+    output_dir = config.model.output_dir or Path("src/infrastructure/r_model/training/checkpoints/farma-sft")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    training_args = GRPOConfig(
+    training_args = SFTConfig(
         output_dir=str(output_dir),
         per_device_train_batch_size=_as_int(config.training, "per_device_train_batch_size", 2),
         gradient_accumulation_steps=_as_int(config.training, "gradient_accumulation_steps", 8),
@@ -125,12 +115,12 @@ def train_grpo(config_path: Path) -> None:
         bf16=True,
     )
 
-    trainer = GRPOTrainer(
-        model=cast(PreTrainedModel | PeftModel, model),
-        reward_funcs=grpo_reward,
+    trainer = SFTTrainer(
+        model=model,
         args=training_args,
-        train_dataset=mapped_dataset,
+        train_dataset=dataset,
         processing_class=tokenizer,
+        formatting_func=_format_sft_example,
     )
     trainer.train()
     trainer.save_model(str(output_dir / "adapter"))
@@ -138,14 +128,10 @@ def train_grpo(config_path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="QLoRA + GRPO training for FARMA")
-    parser.add_argument(
-        "--config",
-        type=Path,
-        default=Path("src/infrastructure/r_model/training/train_config.toml"),
-    )
+    parser = argparse.ArgumentParser(description="QLoRA SFT training for FARMA")
+    parser.add_argument("--config", type=Path, default=Path("src/infrastructure/r_model/training/train_config.toml"))
     args = parser.parse_args()
-    train_grpo(args.config)
+    train_sft(args.config)
 
 
 if __name__ == "__main__":

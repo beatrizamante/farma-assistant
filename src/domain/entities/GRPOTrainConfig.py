@@ -4,7 +4,7 @@ from pathlib import Path
 from peft import LoraConfig, TaskType
 from pydantic import BaseModel
 
-from domain.entities.Model_Settings import ModelSettings
+from src.domain.entities.model_settings import ModelSettings
 
 _DEEPSEEK_TARGET_MODULES = [
     "q_proj", "k_proj", "v_proj", "o_proj",

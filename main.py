@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.interface.http.server import make_server
-from src.interface.http.routes.prompt_route import router as prompt_route
 from src._lib.container import get_container
+from src.interface.http.routes.prompt_route import router as prompt_route
+from src.interface.http.server import make_server
 
 CONTAINER = get_container()
 logger = CONTAINER.logger()
