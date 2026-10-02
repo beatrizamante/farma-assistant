@@ -1,0 +1,59 @@
+[model]
+# Repository-relative path to the pretrained base model.
+base_model_dir = "src/infrastructure/r_model/core/deepseek-math-7b-rl"
+# Adapter produced by SFT and consumed by the GRPO phase.
+adapter_dir = "src/infrastructure/r_model/training/checkpoints/farma-sft/adapter"
+# Precision used for model weights and quantization computations.
+torch_dtype = "bfloat16"
+# Weight quantization for QLoRA: "none", "4bit", or "8bit".
+quantization_type = "4bit"
+
+[lora]
+# Number of low-rank adapter dimensions.
+r = 16
+# LoRA scaling factor.
+lora_alpha = 32
+# Dropout applied to LoRA layers.
+lora_dropout = 0.05
+# Model projection layers that receive LoRA adapters.
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+[training]
+# Per-device batch size; effective batch also depends on accumulation and device count.
+per_device_train_batch_size = 4
+# Number of batches accumulated before each optimizer update.
+gradient_accumulation_steps = 4
+# Training duration in epochs; shared by SFT and GRPO.
+num_epochs = 3
+# Optimizer learning rate.
+learning_rate = 2e-4
+# Fraction of training steps used for learning-rate warmup.
+warmup_ratio = 0.03
+# Maximum tokenized sequence length for SFT examples.
+max_seq_length = 1024
+# Save a checkpoint every this many optimizer steps.
+save_steps = 100
+# Log training metrics every this many steps.
+logging_steps = 10
+
+[grpo]
+# Number of completions sampled for each prompt during GRPO.
+num_generations = 8
+# KL penalty coefficient used to limit policy drift.
+beta = 0.001
+# Maximum number of generated tokens sampled for each GRPO completion.
+max_completion_length = 512
+
+[data]
+# JSONL dataset containing prompt and completion columns for SFT.
+sft_dataset_path = "src/dataset/sft/data.jsonl"
+# JSONL dataset containing problem and answer columns for GRPO.
+grpo_dataset_path = "src/dataset/grpo/data.jsonl"
+
+[output]
+# Parent directory containing separate SFT and GRPO run outputs.
+checkpoint_dir = "src/infrastructure/r_model/training/checkpoints"
+# Subdirectory name for the SFT run under checkpoint_dir.
+sft_dir_name = "farma-sft"
+# Subdirectory name for the GRPO run under checkpoint_dir.
+grpo_dir_name = "farma-grpo"

@@ -11,7 +11,7 @@ if __package__ in (None, ""):
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
-from typing import cast
+from typing import Literal, cast
 
 from datasets import Dataset, load_dataset
 from peft import LoraConfig, PeftModel, get_peft_model
@@ -24,11 +24,15 @@ from transformers import (
 from trl.trainer.grpo_config import GRPOConfig
 from trl.trainer.grpo_trainer import GRPOTrainer
 
-ModelType = PreTrainedModel | PeftModel
-
 from src.domain.entities.model_settings import ModelSettings
-from src.infrastructure.r_model.training.config import load_train_config
+from src.infrastructure.r_model.training.config import (
+    PROJECT_ROOT,
+    load_train_config,
+    resolve_project_path,
+)
 from src.infrastructure.r_model.training.reward import grpo_reward
+
+ModelType = PreTrainedModel | PeftModel
 
 
 def _resolve_dataset(path: str | Path) -> Dataset:
@@ -44,11 +48,12 @@ def build_model_and_tokenizer(
     base_model_dir: Path,
     adapter_dir: Path | None = None,
     torch_dtype: str = "bfloat16",
+    quantization_type: Literal["none", "4bit", "8bit"] = "4bit",
 ) -> tuple[ModelType, PreTrainedTokenizerBase]:
     settings = ModelSettings(
         model_dir=base_model_dir,
         torch_dtype=torch_dtype,
-        quantization_type="4bit",
+        quantization_type=quantization_type,
     )
     base_model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
         str(base_model_dir),
@@ -65,32 +70,19 @@ def build_model_and_tokenizer(
     return cast(ModelType, base_model), tokenizer
 
 
-def _as_int(mapping: dict[str, object], key: str, default: int) -> int:
-    value = mapping.get(key, default)
-    if isinstance(value, bool):
-        return int(value)
-    if isinstance(value, (int, float, str)):
-        return int(value)
-    return default
-
-
-def _as_float(mapping: dict[str, object], key: str, default: float) -> float:
-    value = mapping.get(key, default)
-    if isinstance(value, bool):
-        return float(value)
-    if isinstance(value, (int, float, str)):
-        return float(value)
-    return default
-
-
 def train_grpo(config_path: Path) -> None:
     config = load_train_config(config_path)
-    checkpoint = config.model.adapter_dir or Path("src/infrastructure/r_model/training/checkpoints/farma-sft/adapter")
-    dataset = _resolve_dataset(Path("src/dataset/grpo/data.jsonl"))
+    checkpoint = resolve_project_path(config.model.adapter_dir) if config.model.adapter_dir else None
+    dataset = _resolve_dataset(resolve_project_path(config.data.grpo_dataset_path))
     if "problem" not in dataset.column_names or "answer" not in dataset.column_names:
         raise ValueError("GRPO dataset must contain 'problem' and 'answer' columns.")
 
-    model, tokenizer = build_model_and_tokenizer(config.model.base_model_dir, checkpoint)
+    model, tokenizer = build_model_and_tokenizer(
+        resolve_project_path(config.model.base_model_dir),
+        checkpoint,
+        torch_dtype=config.model.torch_dtype,
+        quantization_type=config.model.quantization_type,
+    )
     peft_config = LoraConfig(
         r=config.lora.r,
         lora_alpha=config.lora.lora_alpha,
@@ -111,18 +103,23 @@ def train_grpo(config_path: Path) -> None:
         remove_columns=list(dataset.column_names),
     )
 
-    output_dir = config.model.output_dir or Path("src/infrastructure/r_model/training/checkpoints/farma-grpo")
+    output_dir = resolve_project_path(config.output.checkpoint_dir) / config.output.grpo_dir_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
     training_args = GRPOConfig(
         output_dir=str(output_dir),
-        per_device_train_batch_size=_as_int(config.training, "per_device_train_batch_size", 2),
-        gradient_accumulation_steps=_as_int(config.training, "gradient_accumulation_steps", 8),
-        learning_rate=_as_float(config.training, "learning_rate", 2e-4),
-        max_steps=_as_int(config.training, "max_steps", 1000),
-        save_steps=_as_int(config.training, "save_steps", 100),
-        logging_steps=_as_int(config.training, "logging_steps", 10),
-        bf16=True,
+        per_device_train_batch_size=config.training.per_device_train_batch_size,
+        gradient_accumulation_steps=config.training.gradient_accumulation_steps,
+        num_train_epochs=config.training.num_epochs,
+        learning_rate=config.training.learning_rate,
+        warmup_ratio=config.training.warmup_ratio,
+        num_generations=config.grpo.num_generations,
+        beta=config.grpo.beta,
+        max_completion_length=config.grpo.max_completion_length,
+        save_steps=config.training.save_steps,
+        logging_steps=config.training.logging_steps,
+        bf16=config.model.torch_dtype == "bfloat16",
+        fp16=config.model.torch_dtype == "float16",
     )
 
     trainer = GRPOTrainer(
@@ -142,7 +139,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("src/infrastructure/r_model/training/train_config.toml"),
+        default=PROJECT_ROOT / "configs/training/farma.toml",
     )
     args = parser.parse_args()
     train_grpo(args.config)
